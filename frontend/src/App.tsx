@@ -728,6 +728,10 @@ const handleStatusMessageUpdate = async () => {
                 return Object.keys(groupedMessages).map((dateKey) => {
                   const messagesForDate = groupedMessages[dateKey];
                   const firstMessage = messagesForDate[0];
+                  
+                  // 유효성 검사 (첫 메시지가 없을 경우 렌더링 생략)
+                  if (!firstMessage) return null; 
+
                   const date = new Date(firstMessage.created_at);
                   const dateString = date.toLocaleDateString('ko-KR', {
                     year: 'numeric',
@@ -743,36 +747,61 @@ const handleStatusMessageUpdate = async () => {
                         📅 {dateString}
                       </div>
 
-                      {/* 해당 날짜의 메시지들 */}
-                      {messagesForDate.map((message, index) => (
-                        <div key={message.id || index} className={`message ${message.sender_id === user?.id ? 'my-message' : 'friend-message'}`}>
-                          {message.sender_id !== user?.id && (
-                            <img 
-                              src={currentChatFriend?.profile_image || "/images/baseProfile.jpg"} 
-                              alt="프로필" 
-                              className="message-profile-img"
-                            />
-                          )}
-                          <div className="message-content">
-                            <div className={`message-bubble ${message.sender_id === user?.id ? 'my-bubble' : 'friend-bubble'}`}>
-                              {message.content}
-                            </div>
-                            <div className="message-info">
-                              {/* 읽지 않은 사용자 수 표시 (모든 메시지) */}
-                              {message.unread_count !== undefined && message.unread_count > 0 && (
-                                <span className="unread-count">{message.unread_count}</span>
-                              )}
-                              <div className="message-time">
-                                {new Date(message.created_at).toLocaleTimeString('ko-KR', { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit',
-                                  hour12: true 
-                                })}
-                              </div>
+                      {/* 해당 날짜의 메시지들: 이름 표시 로직이 인라인으로 직접 적용됨 */}
+                      {messagesForDate.map((message, index) => {
+                        // 내 메시지 여부
+                        const isMyMessage = message.sender_id === user?.id;
+                        // 발신자 정보 (상대방 채팅일 경우 currentChatFriend 사용)
+                        const sender = isMyMessage ? user : currentChatFriend;
+
+                        return (
+                          <div 
+                            key={message.id || index} 
+                            // 기존 CSS 클래스 유지 + 정렬만 Tailwind로
+                            className={`message mb-3 px-3 ${isMyMessage ? 'my-message justify-end' : 'friend-message justify-start'}`}
+                          >
+                            {/* 1. 상대방 메시지일 경우에만 프로필 표시 */}
+                            {!isMyMessage && (
+                              <img 
+                                // message 객체에 sender_profile_image가 있다면 사용, 아니면 friend의 이미지 사용
+                                src={message.sender_profile_image || currentChatFriend?.profile_image || "/images/baseProfile.jpg"} 
+                                alt="프로필" 
+                                className="message-profile-img" // 기존 스타일 클래스 사용
+                              />
+                            )}
+                            
+                            {/* 2. 메시지 내용, 이름, 시간 래퍼 */}
+                            <div className="message-content">
+                                {/* ⭐️ 2-1. 상대방 메시지일 경우에만 이름 표시 ⭐️ */}
+                                {!isMyMessage && (
+                                    <div className="message-sender-name">
+                                        {message.sender_username}
+                                    </div>
+                                )}
+                                
+                                {/* 2-2. 버블과 시간 */}
+                                <div className="message-info-wrapper"> {/* Flex 정렬을 위한 래퍼 */}
+                                    <div className={`message-bubble ${isMyMessage ? 'my-bubble' : 'friend-bubble'}`}>
+                                        {message.content}
+                                    </div>
+                                    <div className="message-info">
+                                        {/* 읽지 않은 사용자 수 표시 */}
+                                        {message.unread_count !== undefined && message.unread_count > 0 && (
+                                          <span className="unread-count">{message.unread_count}</span>
+                                        )}
+                                        <div className="message-time">
+                                            {new Date(message.created_at).toLocaleTimeString('ko-KR', { 
+                                                hour: '2-digit', 
+                                                minute: '2-digit',
+                                                hour12: true 
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </React.Fragment>
                   );
                 });
