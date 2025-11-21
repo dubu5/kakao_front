@@ -9,7 +9,7 @@ const pool = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
-});
+}); 
 
 // 프로미스 기반 연결 생성
 const connection = pool.promise();
