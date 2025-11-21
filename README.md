@@ -32,7 +32,7 @@
 ---
 프로필 클릭 오류 해결)
 이전: 내 프로필 클릭시 내 프로필이 아닌 최근에 클릭한 친구의 프로필이 나오는 오류 해결
-
+ 
 ### 기타
 ---
 tsconfig.json에서 suppressImplicitAnyIndexErrors 옵션은 더이상 쓰이지 않아 제거함
