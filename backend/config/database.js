@@ -4,7 +4,7 @@ const mysql = require('mysql2');
 const pool = mysql.createPool({
   host: 'localhost',
   user: 'root',
-  password: 'pdsekdns00',
+  password: '1234',
   database: 'kakaotalk_clone',
   waitForConnections: true,
   connectionLimit: 10,
