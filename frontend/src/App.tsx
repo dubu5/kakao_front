@@ -468,18 +468,6 @@ const handleStatusMessageUpdate = async () => {
     }
   };
 
-  // 향후 채팅 기능을 위해 주석으로 보관
-  // const loadChatRooms = async () => {
-  //   try {
-  //     const response = await axios.get(`${API_BASE_URL}/chat-rooms`, {
-  //       headers: { 'user-id': user?.id }
-  //     });
-  //     setChatRooms(response.data.rooms || []);
-  //   } catch (error) {
-  //     console.error('채팅방 목록 로드 실패:', error);
-  //   }
-  // };
-
   const addFriend = async () => {
     try {
       if (!authToken) {
@@ -512,7 +500,7 @@ const handleStatusMessageUpdate = async () => {
       }
     }
   };
-
+  
   // 채팅 탭 활성화 시 채팅방 목록 새로고침
   useEffect(() => {
     if (isLoggedIn && activeTab === 'chats' && authToken) {
@@ -521,7 +509,7 @@ const handleStatusMessageUpdate = async () => {
     }
   }, [activeTab, isLoggedIn, authToken]);
 
-  // 주기적 채팅방 목록 업데이트 (30초마다)
+  // 주기적 채팅방 목록 업데이트 (3초마다)
   useEffect(() => {
     if (!isLoggedIn || !authToken) return;
 
@@ -530,10 +518,26 @@ const handleStatusMessageUpdate = async () => {
         console.log('주기적 채팅방 목록 업데이트');
         loadChatRooms();
       }
-    }, 30000); // 30초마다
+    }, 3000); // 3초마다
 
     return () => clearInterval(intervalId);
   }, [isLoggedIn, authToken, activeTab]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !showChatRoom || !selectedChatRoom) {
+        return;
+    }
+
+    // 2. 3초마다 loadMessages 호출
+    const intervalId = setInterval(() => {
+        loadMessages(selectedChatRoom); 
+        console.log(`[Polling] ${selectedChatRoom}번 방 메시지 새로고침`);
+    }, 3000);
+
+    // 3. 클린업: 컴포넌트가 언마운트되거나 의존성(방 ID, 열림 상태)이 변경되면 타이머를 정리합니다.
+    return () => clearInterval(intervalId);
+    
+}, [isLoggedIn, showChatRoom, selectedChatRoom]);
 
   if (!isLoggedIn) {
     return (
@@ -671,6 +675,8 @@ const handleStatusMessageUpdate = async () => {
 
   // 채팅방이 열려있을 때 채팅 UI
   if (showChatRoom && currentChatFriend) {
+    const currentRoom = chatRooms.find(r => r.id === selectedChatRoom);
+    const memberCount = currentRoom?.participants?.length || 2;
     return (
       <div className="App chat-mode">
         <div className="chat-room">
@@ -686,6 +692,8 @@ const handleStatusMessageUpdate = async () => {
                     socket.emit('leave_room', selectedChatRoom);
                   }
                   setSelectedChatRoom(null);
+                  setChatRooms([]); 
+                  loadChatRooms();
                 }}
               >
                 ←
@@ -697,7 +705,7 @@ const handleStatusMessageUpdate = async () => {
               />
               <div className="chat-info">
                 <h3 className="chat-friend-name">{currentChatFriend.username}</h3>
-                <span className="chat-member-count">2</span>
+                <span className="chat-member-count">채팅방 인원: {memberCount}명</span>
               </div>
             </div>
             <div className="chat-header-right">
@@ -1018,8 +1026,11 @@ const handleStatusMessageUpdate = async () => {
                           />
                           <div className="profile-info">
                             <div className="profile-name">
-                              {room.participants?.find((p: any) => p.id !== user?.id)?.username || 
-                              (room.participants && room.participants.length > 2 ? `그룹채팅 (${room.participants.length}명)` : '알 수 없는 채팅방')}
+                              {
+                              room.participants && room.participants.length > 2
+                              ? (room.room_name || `그룹채팅 (${room.participants.length}명)`)
+                              : room.participants?.find((p: any) => p.id !== user?.id)?.username || '알 수 없는 채팅방'
+                              }
                             </div>
                             <div className="profile-status">
                               {room.last_message || '아직 메시지가 없습니다'}
@@ -1114,7 +1125,7 @@ const handleStatusMessageUpdate = async () => {
         <div className="friend-info">
           <h2 className="friend-name">{selectedProfileUser.username}</h2>
           
-          {/* ⭐️ 상태메시지 영역: 클릭 기능 제거 (요청 반영) ⭐️ */}
+          {/* 상태메시지 영역: 클릭 기능 제거 (요청 반영) */}
           <p 
             className="friend-status"
           >
@@ -1125,7 +1136,7 @@ const handleStatusMessageUpdate = async () => {
         <button className="close-btn" onClick={() => setShowProfile(false)}>×</button>
       </div>
       
-      {/* ⭐️ 액션 버튼 영역: "상태메시지 변경" 버튼만 유일한 진입점으로 유지 ⭐️ */}
+      {/* 액션 버튼 영역: "상태메시지 변경" 버튼만 유일한 진입점으로 유지 */}
       <div className="friend-profile-actions">
         {user && selectedProfileUser.id === user.id ? (
           // 내 프로필일 경우: "상태메시지 변경" 버튼만 표시
